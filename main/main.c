@@ -43,14 +43,22 @@ void app_main(void)
     gpio_set_direction(BUZZER_GPIO, GPIO_MODE_OUTPUT);
 
     bool carOn = 0;
+    bool ignitionPressed = 0;
     printf("\n");
     while(1) {
         if(gpio_get_level(IGNITION_GPIO)){
+            ignitionPressed = 1;
             if (gpio_get_level(DRIVER_GPIO) && gpio_get_level(PASSENGER_GPIO) && gpio_get_level(PASSENGER_SEATBELT_GPIO) && gpio_get_level(DRIVER_SEATBELT_GPIO)){
                 while(1){
                     gpio_set_level(GREENLED_GPIO, 0);
                     gpio_set_level(BLUELED_GPIO, 1);
                     vTaskDelay(25/  portTICK_PERIOD_MS);
+                    if(!gpio_get_level(IGNITION_GPIO)){
+                        ignitionPressed = 0;
+                    }
+                    if(!ignitionPressed){
+                        break;
+                    }
                 }
             }
             else{
@@ -70,6 +78,12 @@ void app_main(void)
                 while(1){
                     gpio_set_level(BUZZER_GPIO, 1);
                     vTaskDelay(25/  portTICK_PERIOD_MS);
+                    if(!gpio_get_level(IGNITION_GPIO)){
+                        ignitionPressed = 0;
+                    }
+                    if(!ignitionPressed){
+                        break;
+                    }
                 }
             }
         }
@@ -90,4 +104,5 @@ void app_main(void)
         }
         vTaskDelay(25/  portTICK_PERIOD_MS);
     }
+    
 }   
