@@ -14,5 +14,7 @@
     "--background-index",
     "--query-driver=**",
     "--compile-commands-dir=c:\\Users\\maine\\Project-2-Car-Headlight-System\\build"
-  ]
+  ],
+  "idf.flashType": "UART",
+  "idf.portWin": "COM4"
 }

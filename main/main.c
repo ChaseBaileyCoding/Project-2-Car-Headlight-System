@@ -56,7 +56,7 @@ void app_main(void)
                     if(!gpio_get_level(IGNITION_GPIO)){
                         ignitionPressed = 0;
                     }
-                    if(!ignitionPressed){
+                    if(!ignitionPressed && gpio_get_level(IGNITION_GPIO)){
                         break;
                     }
                 }
@@ -81,7 +81,7 @@ void app_main(void)
                     if(!gpio_get_level(IGNITION_GPIO)){
                         ignitionPressed = 0;
                     }
-                    if(!ignitionPressed){
+                    if(!ignitionPressed && gpio_get_level(IGNITION_GPIO)){
                         break;
                     }
                 }
