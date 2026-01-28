@@ -11,7 +11,20 @@
 #define BLUELED_GPIO GPIO_NUM_5
 #define BUZZER_GPIO GPIO_NUM_6
 
+#define LEFT_LOW_BEAM GPIO_NUM_15
+#define RIGHT_LOW_BEAM GPIO_NUM_16
 
+#define HEADLIGHT_ON_GPIO GPIO_NUM_17
+
+void turn_on_lights(){
+    gpio_set_level(LEFT_LOW_BEAM, 1); 
+    gpio_set_level(RIGHT_LOW_BEAM, 1); 
+}
+
+void turn_off_lights(){
+    gpio_set_level(LEFT_LOW_BEAM, 0); 
+    gpio_set_level(RIGHT_LOW_BEAM, 0); 
+}
 
 void app_main(void)
 {
@@ -44,6 +57,17 @@ void app_main(void)
     gpio_reset_pin(BUZZER_GPIO);
     gpio_set_direction(BUZZER_GPIO, GPIO_MODE_OUTPUT);
 
+    gpio_reset_pin(LEFT_LOW_BEAM);
+    gpio_set_direction(LEFT_LOW_BEAM, GPIO_MODE_OUTPUT);
+
+    gpio_reset_pin(RIGHT_LOW_BEAM);
+    gpio_set_direction(RIGHT_LOW_BEAM, GPIO_MODE_OUTPUT);
+
+    gpio_reset_pin(HEADLIGHT_ON_GPIO);
+    gpio_set_direction(HEADLIGHT_ON_GPIO, GPIO_MODE_INPUT);
+    gpio_pulldown_en(HEADLIGHT_ON_GPIO);
+
+
     bool carOn = 0; //boolean for not looping the message
     bool ignitionPressed = 0; //boolean to not turn off the vehicle immediately
     printf("\n");
@@ -52,16 +76,24 @@ void app_main(void)
         if(gpio_get_level(IGNITION_GPIO) && !ignitionPressed){
             ignitionPressed = 1;
             if (gpio_get_level(DRIVER_GPIO) && gpio_get_level(PASSENGER_GPIO) && gpio_get_level(PASSENGER_SEATBELT_GPIO) && gpio_get_level(DRIVER_SEATBELT_GPIO)){
-                while(1){
+                while(1){ //loop where vehicle is on
                     gpio_set_level(GREENLED_GPIO, 0);
                     gpio_set_level(BLUELED_GPIO, 1);
                     vTaskDelay(25/  portTICK_PERIOD_MS);
+
+                    if(gpio_get_level(HEADLIGHT_ON_GPIO)){
+                        turn_on_lights();
+                    }
+                    else{
+                        turn_off_lights();
+                    }
                     if(!gpio_get_level(IGNITION_GPIO)){
                         ignitionPressed = 0;
                     }
                     if(!ignitionPressed && gpio_get_level(IGNITION_GPIO)){ //turns off the engine from when it was on
                         gpio_set_level(BLUELED_GPIO, 0);
                         ignitionPressed = 1; //sets the value so it does not immediately loop
+                        turn_off_lights();
                         break;
                     }
                 }
@@ -116,3 +148,4 @@ void app_main(void)
     }
     
 }   
+
