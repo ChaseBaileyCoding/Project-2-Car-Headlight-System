@@ -47,8 +47,9 @@ void app_main(void)
     bool carOn = 0; //boolean for not looping the message
     bool ignitionPressed = 0; //boolean to not turn off the vehicle immediately
     printf("\n");
+
     while(1) {
-        if(gpio_get_level(IGNITION_GPIO) && ignitionPressed){
+        if(gpio_get_level(IGNITION_GPIO) && !ignitionPressed){
             ignitionPressed = 1;
             if (gpio_get_level(DRIVER_GPIO) && gpio_get_level(PASSENGER_GPIO) && gpio_get_level(PASSENGER_SEATBELT_GPIO) && gpio_get_level(DRIVER_SEATBELT_GPIO)){
                 while(1){
@@ -92,6 +93,9 @@ void app_main(void)
                     }
                 }
             }
+        }
+        else if (!gpio_get_level(IGNITION_GPIO)){
+            ignitionPressed = 0; //allows the loop above to be reentered when the button is released
         }
         if(gpio_get_level(DRIVER_GPIO)){ //checks if the user enters the vehicle
             if(!carOn){
