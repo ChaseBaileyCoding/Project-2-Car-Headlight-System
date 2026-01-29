@@ -1,5 +1,6 @@
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
+#include "esp_adc/adc_oneshot.h"
 
 #define DRIVER_GPIO GPIO_NUM_10
 #define PASSENGER_GPIO GPIO_NUM_11
@@ -16,6 +17,11 @@
 
 #define HEADLIGHT_ON_GPIO GPIO_NUM_17
 
+#define ADC_CHANNEL     ADC_CHANNEL_7 
+#define ADC_ATTEN       ADC_ATTEN_DB_12
+#define BITWIDTH        ADC_BITWIDTH_12
+
+
 void turn_on_lights(){
     gpio_set_level(LEFT_LOW_BEAM, 1); 
     gpio_set_level(RIGHT_LOW_BEAM, 1); 
@@ -28,6 +34,32 @@ void turn_off_lights(){
 
 void app_main(void)
 {
+    int adc_bits;                        // ADC reading (bits)
+    int adc_mv;       
+
+    adc_oneshot_unit_init_cfg_t init_config = {
+        .unit_id = ADC_UNIT_2,
+    };
+     adc_oneshot_unit_handle_t adc2_handle;              // Unit handle
+    adc_oneshot_new_unit(&init_config, &adc2_handle);  // Populate unit handle
+   
+    adc_oneshot_chan_cfg_t config = {
+        .atten = ADC_ATTEN,
+        .bitwidth = BITWIDTH
+    };                                                  // Channel config
+    adc_oneshot_config_channel                          // Configure the chan
+    (adc2_handle, ADC_CHANNEL, &config);
+   
+    adc_cali_curve_fitting_config_t cali_config = {
+        .unit_id = ADC_UNIT_2,
+        .chan = ADC_CHANNEL,
+        .atten = ADC_ATTEN,
+        .bitwidth = BITWIDTH
+    };                                                  // Calibration config
+    adc_cali_handle_t adc2_cali_chan_handle;            // Calibration handle
+    adc_cali_create_scheme_curve_fitting                // Populate cal handle
+    (&cali_config, &adc2_cali_chan_handle);
+    
     gpio_reset_pin(DRIVER_GPIO);
     gpio_set_direction(DRIVER_GPIO, GPIO_MODE_INPUT);
     gpio_pulldown_en(DRIVER_GPIO);
@@ -73,20 +105,36 @@ void app_main(void)
     printf("\n");
 
     while(1) {
+        turn_off_lights();
         if(gpio_get_level(IGNITION_GPIO) && !ignitionPressed){
             ignitionPressed = 1;
             if (gpio_get_level(DRIVER_GPIO) && gpio_get_level(PASSENGER_GPIO) && gpio_get_level(PASSENGER_SEATBELT_GPIO) && gpio_get_level(DRIVER_SEATBELT_GPIO)){
                 while(1){ //loop where vehicle is on
+
+                    int adc_bits;                                   // ADC reading (bits)
+                    adc_oneshot_read
+                    (adc2_handle, ADC_CHANNEL, &adc_bits);          // Read ADC bits
+       
+                    int adc_mv;                                     // ADC reading (mV)
+                    adc_cali_raw_to_voltage
+                    (adc2_cali_chan_handle, adc_bits, &adc_mv)
+
                     gpio_set_level(GREENLED_GPIO, 0);
                     gpio_set_level(BLUELED_GPIO, 1);
-                    vTaskDelay(25/  portTICK_PERIOD_MS);
+                    
 
-                    if(gpio_get_level(HEADLIGHT_ON_GPIO)){
-                        turn_on_lights();
+                    if(adc_mv > 2200){ //threshold for turning on headlights
+                        //auto mode
                     }
-                    else{
+                    else if (adc_mv < 200){
                         turn_off_lights();
                     }
+                    else{
+                        turn_on_lights();
+                    }
+
+                    vTaskDelay(25/  portTICK_PERIOD_MS); 
+
                     if(!gpio_get_level(IGNITION_GPIO)){
                         ignitionPressed = 0;
                     }
@@ -96,6 +144,7 @@ void app_main(void)
                         turn_off_lights();
                         break;
                     }
+                    
                 }
             }
             else{ //if the ignition was inhibited enters this loop
