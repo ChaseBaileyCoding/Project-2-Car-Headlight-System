@@ -117,16 +117,16 @@ void app_main(void)
        
                     int adc_mv;                                     // ADC reading (mV)
                     adc_cali_raw_to_voltage
-                    (adc2_cali_chan_handle, adc_bits, &adc_mv)
+                    (adc2_cali_chan_handle, adc_bits, &adc_mv);
 
                     gpio_set_level(GREENLED_GPIO, 0);
                     gpio_set_level(BLUELED_GPIO, 1);
                     
 
-                    if(adc_mv > 2200){ //threshold for turning on headlights
-                        //auto mode
+                    if(adc_mv > 2000){ //threshold for turning on headlights
+                        //auto mode   
                     }
-                    else if (adc_mv < 200){
+                    else if (adc_mv < 800){
                         turn_off_lights();
                     }
                     else{
