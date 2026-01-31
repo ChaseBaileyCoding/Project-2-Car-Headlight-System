@@ -139,6 +139,13 @@ void app_main(void)
                 int duskcount = 0;
                 int daycount = 0;
                 while(1){ //loop where vehicle is on
+                            
+                    if((gpio_get_level(DRIVER_GPIO)) && (gpio_get_level(PASSENGER_GPIO)) && (gpio_get_level(PASSENGER_SEATBELT_GPIO)) && (gpio_get_level(DRIVER_SEATBELT_GPIO))){
+                        gpio_set_level(GREENLED_GPIO, 1); //turns on the green LED if all of the correct buttons are pressed
+                    }
+                    else{
+                        gpio_set_level(GREENLED_GPIO, 0);
+                    }
 
                     int adc_bits;                                   // ADC reading (bits)
                     adc_oneshot_read
@@ -156,7 +163,6 @@ void app_main(void)
                     adc_cali_raw_to_voltage
                     (adc1_cali_chan_handle, adc_sensor_bits, &adc_sensor_mv);
 
-                    gpio_set_level(GREENLED_GPIO, 0);
                     gpio_set_level(BLUELED_GPIO, 1);
                     
 
