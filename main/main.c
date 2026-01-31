@@ -23,6 +23,9 @@
 
 #define ADC_CHANNEL_LDR ADC_CHANNEL_8 // pin 9
 
+#define DAYLIGHT_MV     2700
+#define DUSK_MV         1000
+
 void turn_on_lights(){
     gpio_set_level(LEFT_LOW_BEAM, 1); 
     gpio_set_level(RIGHT_LOW_BEAM, 1); 
@@ -35,11 +38,11 @@ void turn_off_lights(){
 
 void app_main(void)
 {
-    int adc_bits;                        // ADC reading (bits)
-    int adc_mv;       
+    int adc_bits = 0;                        // ADC reading (bits)
+    int adc_mv = 0;       
 
-    int adc_ldr_bits;                        // ADC reading (bits)
-    int adc_ldr_mv;   
+    int adc_ldr_bits = 0;                        // ADC reading (bits)
+    int adc_ldr_mv = 0;   
 
     adc_oneshot_unit_init_cfg_t init_config = {
         .unit_id = ADC_UNIT_2,
@@ -77,6 +80,8 @@ void app_main(void)
     adc_cali_create_scheme_curve_fitting                // Populate cal handle
     (&cali_ldr_config, &adc2_cali_ldr_handle);
 
+    adc_cali_raw_to_voltage(adc2_cali_ldr_handle, adc_ldr_bits, &adc_ldr_mv);
+    adc_cali_raw_to_voltage(adc2_cali_chan_handle, adc_bits, &adc_mv);
 
     gpio_reset_pin(DRIVER_GPIO);
     gpio_set_direction(DRIVER_GPIO, GPIO_MODE_INPUT);
@@ -127,6 +132,8 @@ void app_main(void)
         if(gpio_get_level(IGNITION_GPIO) && !ignitionPressed){
             ignitionPressed = 1;
             if (gpio_get_level(DRIVER_GPIO) && gpio_get_level(PASSENGER_GPIO) && gpio_get_level(PASSENGER_SEATBELT_GPIO) && gpio_get_level(DRIVER_SEATBELT_GPIO)){
+                int duskcount = 0;
+                int daycount = 0;
                 while(1){ //loop where vehicle is on
 
                     int adc_bits;                                   // ADC reading (bits)
@@ -142,7 +149,24 @@ void app_main(void)
                     
 
                     if(adc_mv > 2000){ //threshold for turning on headlights
-                        //auto mode   
+                        if(adc_ldr_mv > DAYLIGHT_MV){
+                            if(daycount >= 80){
+                                turn_off_lights();
+                            }
+                            daycount += 1;
+                            duskcount = 0;
+                        }
+                        else if(adc_ldr_mv < DUSK_MV){
+                            if(duskcount >= 40){
+                                turn_on_lights();
+                            }
+                            duskcount += 1;
+                            daycount = 0;
+                        }
+                        else{
+                            duskcount = 0;
+                            daycount = 0;
+                        }
                     }
                     else if (adc_mv < 800){
                         turn_off_lights();
@@ -150,19 +174,17 @@ void app_main(void)
                     else{
                         turn_on_lights();
                     }
-
-                    vTaskDelay(25/  portTICK_PERIOD_MS); 
-
                     if(!gpio_get_level(IGNITION_GPIO)){
                         ignitionPressed = 0;
                     }
+                    
                     if(!ignitionPressed && gpio_get_level(IGNITION_GPIO)){ //turns off the engine from when it was on
                         gpio_set_level(BLUELED_GPIO, 0);
                         ignitionPressed = 1; //sets the value so it does not immediately loop
                         turn_off_lights();
                         break;
                     }
-                    
+                    vTaskDelay(25/  portTICK_PERIOD_MS); 
                 }
             }
             else{ //if the ignition was inhibited enters this loop
