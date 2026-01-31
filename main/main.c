@@ -17,10 +17,11 @@
 
 #define HEADLIGHT_ON_GPIO GPIO_NUM_17
 
-#define ADC_CHANNEL     ADC_CHANNEL_7 
+#define ADC_CHANNEL     ADC_CHANNEL_7 //pin 8
 #define ADC_ATTEN       ADC_ATTEN_DB_12
 #define BITWIDTH        ADC_BITWIDTH_12
 
+#define ADC_CHANNEL_LDR ADC_CHANNEL_8 // pin 9
 
 void turn_on_lights(){
     gpio_set_level(LEFT_LOW_BEAM, 1); 
@@ -37,6 +38,9 @@ void app_main(void)
     int adc_bits;                        // ADC reading (bits)
     int adc_mv;       
 
+    int adc_ldr_bits;                        // ADC reading (bits)
+    int adc_ldr_mv;   
+
     adc_oneshot_unit_init_cfg_t init_config = {
         .unit_id = ADC_UNIT_2,
     };
@@ -49,6 +53,8 @@ void app_main(void)
     };                                                  // Channel config
     adc_oneshot_config_channel                          // Configure the chan
     (adc2_handle, ADC_CHANNEL, &config);
+    adc_oneshot_config_channel
+    (adc2_handle, ADC_CHANNEL_LDR, &config);
    
     adc_cali_curve_fitting_config_t cali_config = {
         .unit_id = ADC_UNIT_2,
@@ -56,10 +62,22 @@ void app_main(void)
         .atten = ADC_ATTEN,
         .bitwidth = BITWIDTH
     };                                                  // Calibration config
+
+    adc_cali_curve_fitting_config_t cali_ldr_config = {
+        .unit_id = ADC_UNIT_2,
+        .chan = ADC_CHANNEL_LDR,
+        .atten = ADC_ATTEN,
+        .bitwidth = BITWIDTH
+    };
+
     adc_cali_handle_t adc2_cali_chan_handle;            // Calibration handle
+    adc_cali_handle_t adc2_cali_ldr_handle; 
     adc_cali_create_scheme_curve_fitting                // Populate cal handle
     (&cali_config, &adc2_cali_chan_handle);
-    
+    adc_cali_create_scheme_curve_fitting                // Populate cal handle
+    (&cali_ldr_config, &adc2_cali_ldr_handle);
+
+
     gpio_reset_pin(DRIVER_GPIO);
     gpio_set_direction(DRIVER_GPIO, GPIO_MODE_INPUT);
     gpio_pulldown_en(DRIVER_GPIO);
