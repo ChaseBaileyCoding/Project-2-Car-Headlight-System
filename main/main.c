@@ -198,7 +198,7 @@ void app_main(void)
                         turn_off_lights();
                         break;
                     }
-                    printf("%d \n",adc_sensor_mv);
+                    //printf("%d \n",adc_sensor_mv);
                 }
             }
             else{ //if the ignition was inhibited enters this loop
